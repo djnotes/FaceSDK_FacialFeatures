@@ -5,9 +5,13 @@
 
 package com.example.facialfeatures;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.app.Activity;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.Menu;
 import android.widget.TextView;
@@ -23,7 +27,9 @@ import com.luxand.FSDK;
 import com.luxand.FSDK.*;
 
 public class MainActivity extends Activity {
-	protected HImage oldpicture;
+    private static final String[] PERMISSIONS = new String[] {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
+    private static final int REQUEST_CODE = 100;
+    protected HImage oldpicture;
 	private static int RESULT_LOAD_IMAGE = 1;
 	protected boolean processing;
 	
@@ -108,6 +114,12 @@ public class MainActivity extends Activity {
     	
     	super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main); //using res/layout/activity_main.xml
+
+        //Check storage permissions
+        if(ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
+                PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, PERMISSIONS, REQUEST_CODE);
+        }
         
         TextView tv = (TextView) findViewById(R.id.textView1);
         

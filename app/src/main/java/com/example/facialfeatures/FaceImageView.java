@@ -16,10 +16,11 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
+import android.support.v7.widget.AppCompatImageView;
 import android.util.AttributeSet;
 import android.widget.ImageView;
 
-public class FaceImageView extends ImageView {
+public class FaceImageView extends AppCompatImageView {
 	private Paint painter;
     public TFacePosition detectedFace;
     public FSDK_Features facial_features;
