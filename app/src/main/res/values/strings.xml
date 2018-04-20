@@ -2,6 +2,6 @@
 <resources>
 
     <string name="app_name">FacialFeatures</string>
-    <string name="menu_settings">Settings</string>
+    <string name="menu_load">Load</string>
 
 </resources>

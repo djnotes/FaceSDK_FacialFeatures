@@ -5,16 +5,25 @@
     tools:context=".MainActivity" >
 
     <com.example.facialfeatures.FaceImageView
-        android:id="@+id/imageView1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
+        android:id="@+id/faceImageView"
+        android:layout_width="@dimen/img_width"
+        android:layout_height="@dimen/img_height"
         android:layout_alignParentRight="true"
-        android:layout_marginBottom="19dp"
-        android:layout_marginRight="20dp" />
+        android:layout_alignParentLeft="true"
+        android:layout_below="@id/process"
+        />
+    <ImageView
+        android:id="@+id/normalImage"
+        android:layout_width="@dimen/img_width"
+        android:layout_height="@dimen/img_height"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true"
+
+        />
 
     <TextView
-        android:id="@+id/textView1"
+        android:id="@+id/infoText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
@@ -22,11 +31,11 @@
         android:text="TextView" />
 
     <Button
-        android:id="@+id/buttonLoadImage"
+        android:id="@+id/process"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentTop="true"
-        android:text="Load" />
+        android:layout_below="@id/normalImage"
+        android:layout_centerHorizontal="true"
+        android:text="Process" />
 
 </RelativeLayout>

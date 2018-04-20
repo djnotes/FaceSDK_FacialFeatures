@@ -7,6 +7,7 @@ package com.example.facialfeatures;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.app.Activity;
@@ -14,26 +15,32 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.Menu;
+import android.view.MenuItem;
+import android.widget.ImageView;
 import android.widget.TextView;
-import android.view.View;
 import android.widget.Button;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.provider.MediaStore;
-import com.example.facialfeatures.R;
+
 import com.luxand.FSDK;
 import com.luxand.FSDK.*;
 
 public class MainActivity extends Activity {
     private static final String[] PERMISSIONS = new String[] {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
     private static final int REQUEST_CODE = 100;
-    protected HImage oldpicture;
+	private static final String TAG = "MainActivity";
+	protected HImage oldpicture;
 	private static int RESULT_LOAD_IMAGE = 1;
 	protected boolean processing;
-	
-	
+	ImageView normalImage;
+	// Adding button
+	Button process;
+	private TextView infoText;
+
+
 	// Subclass for async processing of FaceSDK functions.
 	// If long-run task runs in foreground - Android kills the process.
 	private class DetectFaceInBackground extends AsyncTask<String, Void, String> {
@@ -71,12 +78,12 @@ public class MainActivity extends Activity {
 		
 		@Override
 		protected void onPostExecute(String resultstring) {
-			TextView tv = (TextView) findViewById(R.id.textView1);
+			TextView tv = (TextView) findViewById(R.id.infoText);
 			
 			if (result != FSDK.FSDKE_OK)
 				return;
 			
-			FaceImageView imageView = (FaceImageView) findViewById(R.id.imageView1);
+			FaceImageView imageView = (FaceImageView) findViewById(R.id.faceImageView);
 			
 			imageView.setImageBitmap(BitmapFactory.decodeFile(picturePath));
 						
@@ -109,49 +116,41 @@ public class MainActivity extends Activity {
 	
 	
     @Override
-    protected void onCreate(Bundle savedInstanceState) {   	
-    	processing = true; //prevent user from pushing the button while initializing
-    	
-    	super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main); //using res/layout/activity_main.xml
+    protected void onCreate(Bundle savedInstanceState) {
 
-        //Check storage permissions
-        if(ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
+		processing = true; //prevent user from pushing the button while initializing
+
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_main); //using res/layout/activity_main.xml
+
+
+		//Check storage permissions
+		if(ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
                 PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, PERMISSIONS, REQUEST_CODE);
-        }
-        
-        TextView tv = (TextView) findViewById(R.id.textView1);
-        
-    	try {	    	
-	        int res = FSDK.ActivateLibrary(getString(R.string.fsdk_license));
-	        FSDK.Initialize();
-	        FSDK.SetFaceDetectionParameters(false, false, 100);
-	        FSDK.SetFaceDetectionThreshold(5);
-	        
-	        if (res == FSDK.FSDKE_OK) {
-	        	tv.setText("FaceSDK activated\n");
-	        } else {
-	        	tv.setText("Error activating FaceSDK: " + res + "\n");
-	        }
-    	}
-    	catch (Exception e) {
-    		tv.setText("exception " + e.getMessage());
-    	}
-        
-        // Adding button
-        Button buttonLoadImage1 = (Button) findViewById(R.id.buttonLoadImage);
-        buttonLoadImage1.setOnClickListener(new View.OnClickListener() {			
-			@Override
-			public void onClick(View arg) {
-				if (!processing) {
-					processing = true;
-					Intent i = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-					startActivityForResult(i, RESULT_LOAD_IMAGE);
-				}
+			ActivityCompat.requestPermissions(this, PERMISSIONS, REQUEST_CODE);
+		}
+
+		infoText = (TextView) findViewById(R.id.infoText);
+		normalImage = findViewById(R.id.normalImage);
+		process = (Button) findViewById(R.id.process);
+
+		try {
+			int res = FSDK.ActivateLibrary(getString(R.string.fsdk_license));
+			FSDK.Initialize();
+			FSDK.SetFaceDetectionParameters(false, false, 100);
+			FSDK.SetFaceDetectionThreshold(5);
+
+			if (res == FSDK.FSDKE_OK) {
+				infoText.setText("FaceSDK activated\n");
+			} else {
+				infoText.setText("Error activating FaceSDK: " + res + "\n");
 			}
-		});    
-        
+		}
+    	catch (Exception e) {
+			infoText.setText("exception " + e.getMessage());
+		}
+
+
         processing = false;
     }
     
@@ -161,22 +160,44 @@ public class MainActivity extends Activity {
         getMenuInflater().inflate(R.menu.activity_main, menu);
         return true;
     }
-    
-    @Override
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		switch(item.getItemId()){
+			case R.id.menu_load:
+				if (!processing) {
+					processing = true;
+					Intent i = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+					startActivityForResult(i, RESULT_LOAD_IMAGE);
+				}
+
+				break;
+		}
+		return super.onOptionsItemSelected(item);
+
+	}
+
+	@Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
     	super.onActivityResult(requestCode, resultCode, data);
     	
 		if (requestCode == RESULT_LOAD_IMAGE && resultCode == RESULT_OK && null != data) {
 			Uri selectedImage = data.getData();
 			String[] filePathColumn = { MediaStore.Images.Media.DATA };
+			Log.d(TAG, "onActivityResult: Image uri: " + selectedImage.toString());
 
 			Cursor cursor = getContentResolver().query(selectedImage, filePathColumn, null, null, null);
 			cursor.moveToFirst();
 			int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
 			String picturePath = cursor.getString(columnIndex);
+
+			Log.d(TAG, "onActivityResult: picturePath: " + picturePath);
 			cursor.close();
+
+			Bitmap bitmap = BitmapFactory.decodeFile(picturePath);
+			normalImage.setImageBitmap(bitmap);
 		
-			TextView tv = (TextView) findViewById(R.id.textView1);
+			TextView tv = (TextView) findViewById(R.id.infoText);
 	        tv.setText("processing...");
 			new DetectFaceInBackground().execute(picturePath);
 		} else {
