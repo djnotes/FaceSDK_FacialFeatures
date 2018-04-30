@@ -14,13 +14,19 @@
         />
     <ImageView
         android:id="@+id/normalImage"
-        android:layout_width="@dimen/img_width"
+        android:layout_width="@dimen/img_width_half"
         android:layout_height="@dimen/img_height"
         android:layout_alignParentLeft="true"
-        android:layout_alignParentRight="true"
         android:layout_alignParentTop="true"
 
         />
+    <ImageView android:id="@+id/blurredImage"
+        android:layout_width="@dimen/img_width_half"
+        android:layout_height="@dimen/img_height"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true"
+        />
+
 
     <TextView
         android:id="@+id/infoText"
@@ -35,7 +41,16 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/normalImage"
-        android:layout_centerHorizontal="true"
+        android:layout_alignParentLeft="true"
         android:text="Process" />
+    <Button android:id="@+id/crop"
+        android:text="Crop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_alignBottom="@id/process"
+        android:layout_toRightOf="@id/process"
+        />
+
 
 </RelativeLayout>

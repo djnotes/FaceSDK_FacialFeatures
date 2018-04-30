@@ -2,4 +2,5 @@
 <resources>
     <dimen name="img_width">300dp</dimen>
     <dimen name="img_height">200dp</dimen>
+    <dimen name="img_width_half">150dp</dimen>
 </resources>

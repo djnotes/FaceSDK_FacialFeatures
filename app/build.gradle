@@ -5,13 +5,16 @@ android {
 
     defaultConfig {
         applicationId "com.example.facialfeatures"
-        minSdkVersion 14
+        minSdkVersion 19
         targetSdkVersion 27
         versionCode 1
         versionName "1.0"
         ndk {
             abiFilters "armeabi-v7a", "x86"
         }
+
+        renderscriptTargetApi 18
+        renderscriptSupportModeEnabled true
     }
     buildTypes {
         release {

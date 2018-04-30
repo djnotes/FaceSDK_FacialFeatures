@@ -6,16 +6,24 @@
 package com.example.facialfeatures;
 
 import android.Manifest;
+import android.app.AlertDialog;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.app.Activity;
+import android.renderscript.Allocation;
+import android.renderscript.Element;
+import android.renderscript.RenderScript;
+import android.renderscript.ScriptIntrinsicBlur;
+import android.renderscript.Type;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Button;
@@ -28,6 +36,11 @@ import android.provider.MediaStore;
 import com.luxand.FSDK;
 import com.luxand.FSDK.*;
 
+import java.io.ByteArrayOutputStream;
+import java.io.FileOutputStream;
+import java.util.ArrayList;
+import java.util.Locale;
+
 public class MainActivity extends Activity {
     private static final String[] PERMISSIONS = new String[] {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
     private static final int REQUEST_CODE = 100;
@@ -37,8 +50,57 @@ public class MainActivity extends Activity {
 	protected boolean processing;
 	ImageView normalImage;
 	// Adding button
-	Button process;
+	Button processButton;
 	private TextView infoText;
+	FaceImageView mFaceView;
+	ImageView mBlurImageView;
+	private Bitmap mRawBitmap;
+	private Button mCropButton;
+
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+
+		processing = true; //prevent user from pushing the button while initializing
+
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_main); //using res/layout/activity_main.xml
+
+
+		//Check storage permissions
+		if(ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
+				PackageManager.PERMISSION_GRANTED) {
+			ActivityCompat.requestPermissions(this, PERMISSIONS, REQUEST_CODE);
+		}
+
+		infoText =  findViewById(R.id.infoText);
+		normalImage = findViewById(R.id.normalImage);
+		processButton = findViewById(R.id.process);
+		mFaceView = findViewById(R.id.faceImageView);
+		mBlurImageView = findViewById(R.id.blurredImage);
+		mCropButton = findViewById(R.id.crop);
+
+
+		try {
+			int res = FSDK.ActivateLibrary(getString(R.string.fsdk_license));
+			FSDK.Initialize();
+			FSDK.SetFaceDetectionParameters(false, false, 100);
+			FSDK.SetFaceDetectionThreshold(5);
+
+			if (res == FSDK.FSDKE_OK) {
+				infoText.setText("FaceSDK activated\n");
+			} else {
+				infoText.setText(String.format(Locale.getDefault(), "Error activating FaceSDK: %d",res));
+			}
+		}
+		catch (Exception e) {
+			infoText.setText(String.format("exception: %s", e.getMessage() ));
+		}
+
+		processing = false;
+		AnimatedGifEncoder encoder = new AnimatedGifEncoder();
+	}
+
 
 
 	// Subclass for async processing of FaceSDK functions.
@@ -49,7 +111,7 @@ public class MainActivity extends Activity {
 		protected String picturePath;
 		protected HImage picture;
 		protected int result;
-		
+
 		@Override
 		protected String doInBackground(String... params) {
 			String log = new String();
@@ -82,26 +144,41 @@ public class MainActivity extends Activity {
 			
 			if (result != FSDK.FSDKE_OK)
 				return;
-			
-			FaceImageView imageView = (FaceImageView) findViewById(R.id.faceImageView);
-			
-			imageView.setImageBitmap(BitmapFactory.decodeFile(picturePath));
+
+			final Bitmap bmp = BitmapFactory.decodeFile(picturePath);
+			mFaceView.setImageBitmap(bmp);
 						
 		    tv.setText(resultstring);
 		    
-			imageView.detectedFace = faceCoords;
+			mFaceView.detectedFace = faceCoords;
 			
 			if (features.features[0] != null) // if detected
-				imageView.facial_features = features;
+				mFaceView.facial_features = features;
 			
 			int [] realWidth = new int[1];
 			FSDK.GetImageWidth(picture, realWidth);
-			imageView.faceImageWidthOrig = realWidth[0];
-			imageView.invalidate(); // redraw, marking up faces and features
+			mFaceView.faceImageWidthOrig = realWidth[0];
+			mFaceView.invalidate(); // redraw, marking up faces and features
 			
 			if (oldpicture != null)
 				FSDK.FreeImage(oldpicture);
 			oldpicture = picture;
+
+			//Crop the image
+			mCropButton.setOnClickListener(new View.OnClickListener() {
+				@Override
+				public void onClick(View v) {
+					Bitmap newBitmap = cropBitmap(bmp, faceCoords);
+					ImageView onTheFlyImg = new ImageView(MainActivity.this);
+					onTheFlyImg.setImageBitmap(newBitmap);
+					AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this)
+							.setView(onTheFlyImg)
+							.setMessage("Cropped Image");
+					builder.show();
+					normalImage.setImageBitmap(newBitmap);
+				}
+			});
+
 		}
 		
 		@Override
@@ -111,49 +188,16 @@ public class MainActivity extends Activity {
 		protected void onProgressUpdate(Void... values) {
 		}
 	}
+
+	private Bitmap cropBitmap(Bitmap src, TFacePosition faceCoords) {
+		Bitmap resBmp = Bitmap.createBitmap(src, faceCoords.xc-faceCoords.w/2, faceCoords.yc - faceCoords.w/2, faceCoords.w, faceCoords.w);
+		return resBmp;
+	}
 	//end of DetectFaceInBackground class
 	
 	
 	
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
 
-		processing = true; //prevent user from pushing the button while initializing
-
-		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_main); //using res/layout/activity_main.xml
-
-
-		//Check storage permissions
-		if(ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
-                PackageManager.PERMISSION_GRANTED) {
-			ActivityCompat.requestPermissions(this, PERMISSIONS, REQUEST_CODE);
-		}
-
-		infoText = (TextView) findViewById(R.id.infoText);
-		normalImage = findViewById(R.id.normalImage);
-		process = (Button) findViewById(R.id.process);
-
-		try {
-			int res = FSDK.ActivateLibrary(getString(R.string.fsdk_license));
-			FSDK.Initialize();
-			FSDK.SetFaceDetectionParameters(false, false, 100);
-			FSDK.SetFaceDetectionThreshold(5);
-
-			if (res == FSDK.FSDKE_OK) {
-				infoText.setText("FaceSDK activated\n");
-			} else {
-				infoText.setText("Error activating FaceSDK: " + res + "\n");
-			}
-		}
-    	catch (Exception e) {
-			infoText.setText("exception " + e.getMessage());
-		}
-
-
-        processing = false;
-    }
-    
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -194,9 +238,20 @@ public class MainActivity extends Activity {
 			Log.d(TAG, "onActivityResult: picturePath: " + picturePath);
 			cursor.close();
 
-			Bitmap bitmap = BitmapFactory.decodeFile(picturePath);
-			normalImage.setImageBitmap(bitmap);
-		
+			mRawBitmap = BitmapFactory.decodeFile(picturePath);
+			normalImage.setImageBitmap(mRawBitmap);
+
+
+
+			processButton.setOnClickListener(new View.OnClickListener() {
+				@Override
+				public void onClick(View v) {
+					Bitmap blurredBitmap = blurBitmap(mRawBitmap, 10, MainActivity.this);
+					mBlurImageView.setImageBitmap(blurredBitmap);
+				}
+			});
+
+
 			TextView tv = (TextView) findViewById(R.id.infoText);
 	        tv.setText("processing...");
 			new DetectFaceInBackground().execute(picturePath);
@@ -204,4 +259,64 @@ public class MainActivity extends Activity {
 			processing = false;
 		}
     }
+
+	public static Bitmap blurBitmap(Bitmap bitmap, float radius, Context context) {
+		//Create renderscript
+		RenderScript rs = RenderScript.create(context);
+
+		//Create allocation from Bitmap
+		Allocation allocation = Allocation.createFromBitmap(rs, bitmap);
+
+		Type t = allocation.getType();
+
+		//Create allocation with the same type
+		Allocation blurredAllocation = Allocation.createTyped(rs, t);
+
+		//Create script
+		ScriptIntrinsicBlur blurScript = ScriptIntrinsicBlur.create(rs, Element.U8_4(rs));
+		//Set blur radius (maximum 25.0)
+		blurScript.setRadius(radius);
+		//Set input for script
+		blurScript.setInput(allocation);
+		//Call script for output allocation
+		blurScript.forEach(blurredAllocation);
+
+		//Copy script result into bitmap
+		blurredAllocation.copyTo(bitmap);
+
+		//Destroy everything to free memory
+		allocation.destroy();
+		blurredAllocation.destroy();
+		blurScript.destroy();
+//		t.destroy();
+		rs.destroy();
+
+		return bitmap;
+	}
+
+	/**
+	 * Generates GIF
+	 * cf. https://stackoverflow.com/a/20277649/2009178
+	 * @return
+	 */
+	public byte[] generateGIF() {
+		ArrayList<Bitmap> bitmaps = null;/*adapter.getBitmapArray();*/
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		AnimatedGifEncoder encoder = new AnimatedGifEncoder();
+		encoder.start(bos);
+		for (Bitmap bitmap : bitmaps) {
+			encoder.addFrame(bitmap);
+		}
+		encoder.finish();
+		return bos.toByteArray();
+	}
+
+//	FileOutputStream outStream = null;
+//        try{
+//		outStream = new FileOutputStream("/sdcard/generate_gif/test.gif");
+//		outStream.write(generateGIF());
+//		outStream.close();
+//	}catch(Exception e){
+//		e.printStackTrace();
+//	}
 }

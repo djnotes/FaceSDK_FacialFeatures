@@ -20,6 +20,8 @@ import android.support.v7.widget.AppCompatImageView;
 import android.util.AttributeSet;
 import android.widget.ImageView;
 
+import java.util.Locale;
+
 public class FaceImageView extends AppCompatImageView {
 	private Paint painter;
     public TFacePosition detectedFace;
@@ -32,7 +34,7 @@ public class FaceImageView extends AppCompatImageView {
 		detectedFace = new TFacePosition();
 		detectedFace.w = 0;
 		painter = new Paint();
-        painter.setColor(Color.BLUE);
+        painter.setColor(Color.RED);
         painter.setStrokeWidth(1);
         painter.setStyle(Paint.Style.STROKE);
 	}
@@ -63,9 +65,10 @@ public class FaceImageView extends AppCompatImageView {
 			int xc = (int)(detectedFace.xc * ratio);
 			int yc = (int)(detectedFace.yc * ratio);
 			int w = (int)(detectedFace.w * ratio);
-        
+
 			//draw detected face
             canvas.drawRect(xc - w/2, yc - w/2, xc + w/2, yc + w/2, painter);
+//            canvas.drawOval(xc - w/2, yc - w/2, xc + w/2, yc + w/2, painter);
         }
         
         if (faceImageWidthOrig > 0 && facial_features != null) {
@@ -76,6 +79,8 @@ public class FaceImageView extends AppCompatImageView {
 		        int cx = (int)(facial_features.features[i].x * ratio);
 		        int cy = (int)(facial_features.features[i].y * ratio);
 				canvas.drawCircle(cx, cy, 3, painter);
+				canvas.drawText(String.format(Locale.ENGLISH, "(%d, %d)", facial_features.features[i].x, facial_features.features[i].y),
+						cx, cy, painter);
         	}
         }
     }
