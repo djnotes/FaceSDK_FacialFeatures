@@ -78,9 +78,9 @@ public class FaceImageView extends AppCompatImageView {
         		//scale detected facial features
 		        int cx = (int)(facial_features.features[i].x * ratio);
 		        int cy = (int)(facial_features.features[i].y * ratio);
-				canvas.drawCircle(cx, cy, 3, painter);
-				canvas.drawText(String.format(Locale.ENGLISH, "(%d, %d)", facial_features.features[i].x, facial_features.features[i].y),
-						cx, cy, painter);
+				canvas.drawCircle(cx, cy, 1, painter);
+//				canvas.drawText(String.format(Locale.ENGLISH, "(%d, %d)", facial_features.features[i].x, facial_features.features[i].y),
+//						cx, cy, painter);
         	}
         }
     }

@@ -10,6 +10,11 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
+import android.graphics.Rect;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.app.Activity;
@@ -122,6 +127,7 @@ public class MainActivity extends Activity {
 			result = FSDK.LoadImageFromFile(picture, picturePath);
 			if (result == FSDK.FSDKE_OK) {
 				result = FSDK.DetectFace(picture, faceCoords);
+				FSDK.DetectFacialFeatures(picture, new FSDK_Features());
 				features = new FSDK_Features();
 				if (result == FSDK.FSDKE_OK) {
 					//DEBUG
@@ -132,7 +138,9 @@ public class MainActivity extends Activity {
 				        //result = FSDK.DetectFacialFeatures(picture, features);
 				        result = FSDK.DetectFacialFeaturesInRegion(picture, faceCoords, features);
 				    //Log.d("TT", "TIME: " + ((System.currentTimeMillis()-t0)/10.0f));
+
 				}
+
 			}
 			processing = false; //long-running code is complete, now user may push the button
 			return log;
@@ -168,7 +176,8 @@ public class MainActivity extends Activity {
 			mCropButton.setOnClickListener(new View.OnClickListener() {
 				@Override
 				public void onClick(View v) {
-					Bitmap newBitmap = cropBitmap(bmp, faceCoords);
+					Bitmap srcBitmap = Bitmap.createBitmap(bmp, faceCoords.xc-faceCoords.w/2, faceCoords.yc - faceCoords.w/2, faceCoords.w, faceCoords.w);
+					Bitmap newBitmap = cropBitmap(srcBitmap, faceCoords);
 					ImageView onTheFlyImg = new ImageView(MainActivity.this);
 					onTheFlyImg.setImageBitmap(newBitmap);
 					AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this)
@@ -190,8 +199,26 @@ public class MainActivity extends Activity {
 	}
 
 	private Bitmap cropBitmap(Bitmap src, TFacePosition faceCoords) {
-		Bitmap resBmp = Bitmap.createBitmap(src, faceCoords.xc-faceCoords.w/2, faceCoords.yc - faceCoords.w/2, faceCoords.w, faceCoords.w);
-		return resBmp;
+
+		Bitmap output = Bitmap.createBitmap(src.getWidth(),
+				src.getHeight(), Bitmap.Config.ARGB_8888);
+		Canvas canvas = new Canvas(output);
+
+		final int color = 0xff424242;
+		final Paint paint = new Paint();
+		final Rect rect = new Rect(0, 0, src.getWidth(), src.getHeight());
+
+		paint.setAntiAlias(true);
+		canvas.drawARGB(0, 0, 0, 0);
+		paint.setColor(color);
+		// canvas.drawRoundRect(rectF, roundPx, roundPx, paint);
+		canvas.drawCircle(src.getWidth() / 2, src.getHeight() / 2,src.getWidth() / 2, paint);
+		paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
+		canvas.drawBitmap(src, rect, rect, paint);
+//		Bitmap _bmp = Bitmap.createScaledBitmap(output, 60, 60, false);
+		//return _bmp;
+//		Bitmap resBmp = Bitmap.createBitmap(src, faceCoords.xc-faceCoords.w/2, faceCoords.yc - faceCoords.w/2, faceCoords.w, faceCoords.w);
+		return output;
 	}
 	//end of DetectFaceInBackground class
 	
